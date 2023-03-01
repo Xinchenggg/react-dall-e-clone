@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { preview } from '../assets';
 import { getRandomPrompt } from '../utils';
 import { FormField, Loader } from '../components';
@@ -15,10 +14,61 @@ const CreatePost = () => {
 	const [generatingImg, setGeneratingImg] = useState(false);
 	const [loading, setLoading] = useState(false);
 
-	const generateImage = () => {};
+	const generateImage = async () => {
+		if (form.prompt) {
+			try {
+				setGeneratingImg(true);
+				const response = await fetch(
+					'http://localhost:8080/api/v1/dalle',
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ prompt: form.prompt }),
+					}
+				);
+				const data = await response.json();
+				setForm({
+					...form,
+					photo: `data:image/jpeg;base64,${data.photo}`,
+				});
+			} catch (error) {
+				alert(error);
+			} finally {
+				setGeneratingImg(false);
+			}
+		} else {
+			alert('Please enter a prompt');
+		}
+	};
 
-	const handleSubmit = () => {
-		console.log('handleSubmit func');
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+
+		if (form.prompt && form.photo) {
+			setLoading(true);
+			try {
+				const response = await fetch(
+					'http://localhost:8080/api/v1/post',
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(form),
+					}
+				);
+				await response.json();
+				navigate('/');
+			} catch (error) {
+				alert(error)
+			} finally {
+				setLoading(false)
+			}
+		} else {
+			alert('Please enter a prompt and generate an image')
+		}
 	};
 
 	const handleChange = (e) => {
@@ -37,9 +87,8 @@ const CreatePost = () => {
 					Create
 				</h1>
 				<p className='mt-2 text-[#666e75] text-[16px] max-w-[500px]'>
-					Create imaginative and visually stunning images
-					through DALL-E AI and share them with the
-					community
+					Create imaginative and visually stunning images through
+					DALL-E AI and share them with the community
 				</p>
 			</div>
 			<form className='mt-16 max-w-3xl' onSubmit={handleSubmit}>
@@ -56,7 +105,7 @@ const CreatePost = () => {
 						labelName='Prompt'
 						type='text'
 						name='prompt'
-						placeholder='Selfie of a German Shepherd with sunglasses in black suit'
+						placeholder='Portrait of a German Shepherd in black suit'
 						value={form.prompt}
 						handleChange={handleChange}
 						isSurpriseMe
